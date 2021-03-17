@@ -5,7 +5,7 @@ import (
   "hppr.dev/gg/database"
 )
 
-// Hopper Configuration struct
+// Gingorm Configuration 
 type Config struct {
   // Gorm configuration
   Gorm *gorm.Config
@@ -22,5 +22,9 @@ type Config struct {
 type DatabaseConfigurer interface {
   Configure() gorm.Dialector
   GetDSN() string
+}
+
+func (cfg Config) OpenDB() (*gorm.DB, error) {
+  return database.Open(cfg.Database.Configure(), cfg.OnDBOpen, cfg.Gorm)
 }
 

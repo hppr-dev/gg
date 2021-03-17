@@ -25,7 +25,7 @@ func (cfg PostgresConfig) GetDSN() string {
   if cfg.SSL {
     sslMode = "enable"
   }
-  return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
+  return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%i sslmode=%s TimeZone=%s",
     cfg.Host,
     cfg.User,
     cfg.Password,
