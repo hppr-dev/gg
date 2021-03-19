@@ -17,9 +17,9 @@ const (
   PureJSON
 )
 
-type output func(int, interface{})
+type output = func(int, interface{})
 
-type contextOutput func(*gin.Context) output
+type contextOutput = func(*gin.Context) output
 
 func DefaultOutput(ctx *gin.Context, code int, obj interface{}) {
   GetDefaultOutputFunction(ctx)(code,obj)
@@ -32,28 +32,28 @@ func Output(ctx *gin.Context, format OutputFormat, code int, obj interface{}){
 func GetOutputFunction(format OutputFormat) contextOutput {
   switch format {
     case JSON:
-      return json
+      return outputJson
     case IndentedJSON:
-      return indentedjson
+      return outputIndentedjson
     case YAML:
-      return yaml
+      return outputYaml
     case SecureJSON:
-      return securejson
+      return outputSecurejson
     case JSONP:
-      return jsonp
+      return outputJsonp
     case AsciiJSON:
-      return asciijson
+      return outputAsciijson
     case PureJSON:
-      return purejson
+      return outputPurejson
     default:
-      return json
+      return outputJson
   }
 }
 
-func json(ctx *gin.Context) output { return ctx.JSON }
-func indentedjson(ctx *gin.Context) output { return ctx.IndentedJSON }
-func yaml(ctx *gin.Context) output { return ctx.YAML }
-func securejson(ctx *gin.Context) output { return ctx.SecureJSON }
-func jsonp(ctx *gin.Context) output { return ctx.JSONP }
-func asciijson(ctx *gin.Context) output { return ctx.AsciiJSON }
-func purejson(ctx *gin.Context) output { return ctx.PureJSON }
+func outputJson(ctx *gin.Context) output { return ctx.JSON }
+func outputIndentedjson(ctx *gin.Context) output { return ctx.IndentedJSON }
+func outputYaml(ctx *gin.Context) output { return ctx.YAML }
+func outputSecurejson(ctx *gin.Context) output { return ctx.SecureJSON }
+func outputJsonp(ctx *gin.Context) output { return ctx.JSONP }
+func outputAsciijson(ctx *gin.Context) output { return ctx.AsciiJSON }
+func outputPurejson(ctx *gin.Context) output { return ctx.PureJSON }

@@ -6,7 +6,7 @@ import (
   "hppr.dev/gg/mdl"
 )
 
-func BodyCreate(model interface{}) gin.HandlerFunc {
+func BodyCreate() gin.HandlerFunc {
   return func(ctx *gin.Context) {
     schema := GetModelSchema(ctx)
     model := GetModel(ctx)

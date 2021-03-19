@@ -8,7 +8,7 @@ import (
   "hppr.dev/gg/mdl"
 )
 
-type DefaultMap map[string]interface{}
+type DefaultMap = map[string]interface{}
 
 type ModelSchemaMap map[reflect.Type]schema.Schema
 

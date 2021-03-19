@@ -81,16 +81,16 @@ Available suffixs are :
 
 ## SearchByColumn
 
-Queries the database for an entry with a column that matches the url parameter.
+Queries the database for entries with a column that matches the url parameter.
 
 ```
-  engine.GET('/user/:v', gg.SetModel(&User{}), gg.SearchByColumn("group", "v"))
+  engine.GET('/user/:q', gg.SetModel(&User{}), gg.SearchByColumn("q", "group"))
 ```
 
 Also supports search parameters in the column field:
 
 ```
-  engine.GET('/user/:v', gg.SetModel(&User{}), gg.SearchByColumn("id_gte", "v"))
+  engine.GET('/user/:q', gg.SetModel(&User{}), gg.SearchByColumn("q", "id_gte"))
 ```
 
 ## GetByID

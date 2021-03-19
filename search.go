@@ -31,24 +31,24 @@ func (cm ComparisonMap) toDefaultMap() DefaultMap {
 }
 
 func QuerySearch() gin.HandlerFunc {
-  return func(ctx *gin.Context) {
-    params := bindQuery(ctx)
-    sch := GetModelSchema(ctx)
-    convertComparisonDates(params, sch)
-    results, err := search(params, ctx)
-    if err != nil {
-      DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
-      return
-    }
-    DefaultOutput(ctx, 200, results)
-  }
+  return QuerySearchByColumn("", "")
 }
 
 func BodySearch() gin.HandlerFunc {
+  return BodySearchByColumn("", "")
+}
+
+func BodySearchByColumn(urlParam, column string) gin.HandlerFunc {
   return func(ctx *gin.Context) {
     var dataMap DefaultMap
-    ctx.BindJSON(&dataMap)
+    if binderr := ctx.ShouldBindJSON(&dataMap); binderr != nil {
+      DefaultOutput(ctx, 400, gin.H{"error": binderr.Error()})
+      return
+    }
     params := createComparisons(dataMap)
+    if column != "" && urlParam != "" {
+      addComparison(params, column, ctx.Param(urlParam))
+    }
     results, err := search(params, ctx)
     if err != nil {
       DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
@@ -58,9 +58,20 @@ func BodySearch() gin.HandlerFunc {
   }
 }
 
-func SearchByColumn(column, urlParam string) gin.HandlerFunc {
+func QuerySearchByColumn(urlParam, column string) gin.HandlerFunc {
   return func(ctx *gin.Context) {
-    DefaultOutput(ctx, 200, "Not Implemented")
+    sch := GetModelSchema(ctx)
+    params := bindQuery(ctx)
+    if column != "" && urlParam != "" {
+      addComparison(params, column, ctx.Param(urlParam))
+    }
+    convertComparisonDates(params,sch)
+    results, err := search(params, ctx)
+    if err != nil {
+      DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
+      return
+    }
+    DefaultOutput(ctx, 200, results)
   }
 }
 
@@ -80,10 +91,10 @@ func GetByID(urlParam string) gin.HandlerFunc {
 }
 
 func search(params ComparisonMap, ctx *gin.Context) ([]DefaultMap, error) {
-  var results []DefaultMap
   db := GetDatabase(ctx)
   sch := GetModelSchema(ctx)
   model := GetModel(ctx)
+  var results []DefaultMap
   if len(params) > 0 {
     if err := mdl.MatchAnyMapToModel(params.toDefaultMap(), sch); err != nil {
       return nil, err

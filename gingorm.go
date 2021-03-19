@@ -8,7 +8,7 @@ import (
 func SetModel(model interface{}) gin.HandlerFunc {
   return func(ctx *gin.Context) {
     schemaMap := GetSchemaMap(ctx)
-    ctx.Set("Schema", schemaMap.GetSchema(model))
+    ctx.Set("ModelSchema", schemaMap.GetSchema(model))
     ctx.Set("Model", model)
     ctx.Next()
   }
