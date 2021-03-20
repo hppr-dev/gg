@@ -18,6 +18,7 @@ import (
 type TestModel struct {
   gorm.Model
   Name string
+  Rating float64
 }
 
 var testConfig = Config{
@@ -28,6 +29,7 @@ var testConfig = Config{
 
 func TestMain(m *testing.M) {
   gin.SetMode(gin.TestMode)
+  initDB()
   os.Exit(m.Run())
 }
 
@@ -49,12 +51,27 @@ func TestBodyCreate(t *testing.T) {
   router := getRouter()
   router.POST("/", SetModel(&TestModel{}), BodyCreate())
 
+  body := buildJsonBytes("name", "tester", "rating", 0.0)
+  resp := runRequest(router, "POST", "/", body)
+  jsonResp := extractMapBody(resp)
+  expected := buildMap("name", "tester", "rating", 0.0)
+
+  assertEqual(t, 201, resp.Code)
+  assertNotEqual(t, 0, jsonResp["id"])
+  assertMapEqual(t, expected, jsonResp)
+  t.Logf("%v", jsonResp)
+}
+
+func TestBodyCreateMissingArgs(t *testing.T) {
+  router := getRouter()
+  router.POST("/", SetModel(&TestModel{}), BodyCreate())
+
   body := buildJsonBytes("name", "tester")
   resp := runRequest(router, "POST", "/", body)
   jsonResp := extractMapBody(resp)
-  expected := buildMap("id", 1)
+  expected := buildMap("error", "rating is required")
 
-  assertEqual(t, 201, resp.Code)
+  assertEqual(t, 400, resp.Code)
   assertMapEqual(t, expected, jsonResp)
   t.Logf("%v", jsonResp)
 }
@@ -62,7 +79,7 @@ func TestBodyCreate(t *testing.T) {
 func TestDeleteByID(t *testing.T) {
   router := getRouter()
   router.DELETE("/:id", SetModel(&TestModel{}), DeleteByID("id"))
-  id := create("ponce").ID
+  id := create("ponce", 0.0).ID
 
   resp := runRequest(router, "DELETE", fmt.Sprintf("/%d", id), nil)
 
@@ -76,7 +93,7 @@ func TestMutateByID(t *testing.T) {
     n.Name += " world"
     return n
   }))
-  id := create("hello").ID
+  id := create("hello", 0.0).ID
 
   resp := runRequest(router, "GET", fmt.Sprintf("/%d", id), nil)
   jsonResp := extractMapBody(resp)
@@ -90,9 +107,6 @@ func TestMutateByID(t *testing.T) {
 func TestQuerySearchSimple(t *testing.T) {
   router := getRouter()
   router.GET("/testmodel", SetModel(&TestModel{}), QuerySearch())
-  create("harry")
-  create("harry")
-  create("delia")
 
   resp := runRequest(router, "GET", "/testmodel?name=harry", nil)
   jsonResp := extractSliceBody(resp)
@@ -102,12 +116,21 @@ func TestQuerySearchSimple(t *testing.T) {
   t.Logf("%v", jsonResp)
 }
 
+func TestQuerySearchDates(t *testing.T) {
+  router := getRouter()
+  router.GET("/testmodel", SetModel(&TestModel{}), QuerySearch())
+
+  resp := runRequest(router, "GET", "/testmodel?created_at=2010-10-10", nil)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 0, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
 func TestBodySearchSimple(t *testing.T) {
   router := getRouter()
   router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
-  create("greco")
-  create("greco")
-  create("manny")
 
   body := buildJsonBytes("name", "harry")
   resp := runRequest(router, "POST", "/testmodel", body)
@@ -118,12 +141,112 @@ func TestBodySearchSimple(t *testing.T) {
   t.Logf("%v", jsonResp)
 }
 
+func TestBodySearchNoResults(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("name", "doesnt exist")
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 0, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
+func TestBodySearchNonmatching(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("nomatch", 0)
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 400, resp.Code)
+  t.Logf("%v", jsonResp)
+}
+
+func TestBodySearchNonmatchingWithMatchgin(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("name", "harry", "nomatch", 0)
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 2, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
+func TestBodySearchGreaterThan(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("rating_gt", 5.0)
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 3, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
+func TestBodySearchGreaterThanEqual(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("rating_gte", 8.0)
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 3, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
+func TestBodySearchLessThan(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("rating_lt", 0.0)
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 3, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
+func TestBodySearchLessThanEqual(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("rating_lte", -0.2)
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 3, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
+func TestBodySearchNotEqual(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("rating_ne", 0.0)
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 14, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
 func TestQuerySearchByColumnSimple(t *testing.T) {
   router := getRouter()
   router.GET("/:column", SetModel(&TestModel{}), QuerySearchByColumn("column", "name"))
-  create("ross")
-  create("ross")
-  create("chris")
 
   resp := runRequest(router, "GET", "/ross", nil)
   jsonResp := extractSliceBody(resp)
@@ -136,9 +259,7 @@ func TestQuerySearchByColumnSimple(t *testing.T) {
 func TestBodySearchByColumnSimple(t *testing.T) {
   router := getRouter()
   router.POST("/testmodel/:column", SetModel(&TestModel{}), BodySearchByColumn("column", "name"))
-  ost1id := create("ostio").ID
-  create("ostio")
-  create("reg")
+  ost1id := create("ostio", 0.0).ID
 
   body := buildJsonBytes("id", ost1id)
   resp := runRequest(router, "POST", "/testmodel/ostio", body)
@@ -149,10 +270,23 @@ func TestBodySearchByColumnSimple(t *testing.T) {
   t.Logf("%v", jsonResp)
 }
 
+func TestBodySearchByColumnComparison(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel/:column", SetModel(&TestModel{}), BodySearchByColumn("column", "rating_ne"))
+
+  body := buildJsonBytes("name", "greco")
+  resp := runRequest(router, "POST", "/testmodel/0", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 2, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
 func TestGetByID(t *testing.T) {
   router := getRouter()
   router.GET("/:id", SetModel(&TestModel{}), GetByID("id"))
-  id := create("bunko").ID
+  id := create("bunko", 0.0).ID
 
   resp := runRequest(router, "GET", fmt.Sprintf("/%d", id), nil)
   jsonResp := extractMapBody(resp)
@@ -163,10 +297,22 @@ func TestGetByID(t *testing.T) {
   t.Logf("%v", jsonResp)
 }
 
+func TestGetByIDMissingID(t *testing.T) {
+  router := getRouter()
+  router.GET("/:id", SetModel(&TestModel{}), GetByID("id"))
+
+  resp := runRequest(router, "GET", fmt.Sprintf("/%d", 5000), nil)
+  jsonResp := extractMapBody(resp)
+
+  assertEqual(t, 404, resp.Code)
+  assertEqual(t, "record not found", jsonResp["error"])
+  t.Logf("%v", jsonResp)
+}
+
 func TestUpdateByID(t *testing.T) {
   router := getRouter()
   router.PUT("/:id", SetModel(&TestModel{}), UpdateByID("id"))
-  id := create("cool").ID
+  id := create("cool", 0.0).ID
 
   body := buildJsonBytes("name", "runnings")
   resp := runRequest(router, "PUT", fmt.Sprintf("/%d", id), body)
@@ -178,9 +324,9 @@ func TestUpdateByID(t *testing.T) {
   t.Logf("%v", jsonResp)
 }
 
-func create(name string) TestModel {
+func create(name string, rating float64) TestModel {
   db, _ := testConfig.OpenDB()
-  tm := TestModel{ Name: name }
+  tm := TestModel{ Name: name , Rating: rating }
   db.Create(&tm)
   return tm
 }
@@ -224,11 +370,28 @@ func runRequest(router *gin.Engine, method, url string, bodyBytes []byte) *httpt
   return rec
 }
 
+func initDB() {
+  db, _ := testConfig.OpenDB()
+  db.AutoMigrate(testConfig.Models...)
+  create("harry",  5.0 )
+  create("harry",  2.2 )
+  create("delia",  4.0 )
+  create("greco",  9.0 )
+  create("greco",  0.0 )
+  create("greco",  8.1 )
+  create("manny",  8.5 )
+  create("fareek", -0.2 )
+  create("joanne", 1.0 )
+  create("tregan", 5.0 )
+  create("ross",   2.0 )
+  create("ross",   -3.0 )
+  create("chris",  1.0 )
+  create("ostio",  -3.0 )
+  create("reg",    4.0 )
+}
+
 func getRouter() *gin.Engine {
   r := gin.Default()
-  if db, err := testConfig.OpenDB(); err == nil {
-    db.AutoMigrate(testConfig.Models...)
-  }
   r.Use(Middleware(testConfig))
   return r
 }
@@ -244,6 +407,13 @@ func assertMapEqual(t *testing.T, exp, act map[string]interface{}) {
 
 func assertEqual(t *testing.T, exp, act interface{}) {
   if ! isEquivalent(exp, act) {
+    t.Logf("Expected: %v != Actual %v", exp, act)
+    t.Fail()
+  }
+}
+
+func assertNotEqual(t *testing.T, exp, act interface{}) {
+  if isEquivalent(exp, act) {
     t.Logf("Expected: %v != Actual %v", exp, act)
     t.Fail()
   }

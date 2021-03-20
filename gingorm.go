@@ -2,7 +2,6 @@ package gg
 
 import (
   "github.com/gin-gonic/gin"
-  "hppr.dev/gg/database"
 )
 
 func SetModel(model interface{}) gin.HandlerFunc {
@@ -15,10 +14,7 @@ func SetModel(model interface{}) gin.HandlerFunc {
 }
 
 func Middleware(cfg Config) gin.HandlerFunc {
-  db, err := database.Open(cfg.Database.Configure(), cfg.OnDBOpen, cfg.Gorm)
-  if err != nil {
-    panic("Could not connect to database")
-  }
+  db, _ := cfg.OpenDB()
   schemaMap := setupSchemaMap(cfg, db)
   defaultOutput := GetOutputFunction(cfg.DefaultOutputFormat)
   return func(ctx *gin.Context) {

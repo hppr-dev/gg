@@ -17,14 +17,11 @@ func BodyCreate() gin.HandlerFunc {
       return
     }
     modelRef := mdl.NewModel(model)
-    if err := ctx.ShouldBindBodyWith(&modelRef, binding.JSON); err != nil {
-      DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
-      return
-    }
+    ctx.ShouldBindBodyWith(&modelRef, binding.JSON)
     db := GetDatabase(ctx)
     if err := db.Model(model).Create(modelRef).Error; err != nil {
       DefaultOutput(ctx, 500, gin.H{"error": err.Error()})
     }
-    DefaultOutput(ctx, 201, mdl.ExtractModelIDs(schema, modelRef))
+    DefaultOutput(ctx, 201, convertStructToOutMap(modelRef, schema))
   }
 }

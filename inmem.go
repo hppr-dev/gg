@@ -6,12 +6,10 @@ import (
 
 type InMemConfig SQLiteConfig
 
-const inMemDSN = "file::memory:?cache=shared"
-
-func (InMemConfig) Configure() gorm.Dialector {
-  return  SQLiteConfig{inMemDSN}.Configure()
+func (i InMemConfig) Configure() gorm.Dialector {
+  return  SQLiteConfig{i.GetDSN()}.Configure()
 }
 
 func (InMemConfig) GetDSN() string{
-  return inMemDSN
+  return "file::memory:?cache=shared"
 }

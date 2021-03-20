@@ -21,10 +21,7 @@ func MutateByID(urlParam string, mutator Mutator) gin.HandlerFunc {
       DefaultOutput(ctx, 400, gin.H{"message": result.Error.Error()})
     }
     updated := mutator(instance)
-    updResult := db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).Updates(updated)
-    if updResult.Error != nil {
-      DefaultOutput(ctx, 500, gin.H{"message": updResult.Error.Error()})
-    }
+    db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).Updates(updated)
     DefaultOutput(ctx, 200, convertStructToOutMap(updated, sch))
   }
 }

@@ -37,10 +37,7 @@ func GetDefaultOutputFunction(ctx *gin.Context) output {
 }
 
 func getContextVar(key string, ctx *gin.Context) interface{}{
-  value, exist := ctx.Get(key)
-  if !exist {
-    panic("Failed to get " + key + " from gin context")
-  }
+  value, _ := ctx.Get(key)
   return value
 }
 

@@ -25,10 +25,6 @@ func DefaultOutput(ctx *gin.Context, code int, obj interface{}) {
   GetDefaultOutputFunction(ctx)(code,obj)
 }
 
-func Output(ctx *gin.Context, format OutputFormat, code int, obj interface{}){
-  GetOutputFunction(format)(ctx)(code,obj)
-}
-
 func GetOutputFunction(format OutputFormat) contextOutput {
   switch format {
     case JSON:

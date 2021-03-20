@@ -23,7 +23,7 @@ func UpdateByID(urlParam string) gin.HandlerFunc {
       DefaultOutput(ctx, 500, gin.H{"error": result.Error.Error()})
       return
     }
-    findResult := db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).Take(&updated)
+    findResult := db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).First(&updated)
     if findResult.Error != nil {
       DefaultOutput(ctx, 500, gin.H{"error": findResult.Error.Error()})
       return

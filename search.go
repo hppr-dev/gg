@@ -41,20 +41,12 @@ func BodySearch() gin.HandlerFunc {
 func BodySearchByColumn(urlParam, column string) gin.HandlerFunc {
   return func(ctx *gin.Context) {
     var dataMap DefaultMap
-    if binderr := ctx.ShouldBindJSON(&dataMap); binderr != nil {
-      DefaultOutput(ctx, 400, gin.H{"error": binderr.Error()})
-      return
-    }
+    ctx.BindJSON(&dataMap)
     params := createComparisons(dataMap)
     if column != "" && urlParam != "" {
       addComparison(params, column, ctx.Param(urlParam))
     }
-    results, err := search(params, ctx)
-    if err != nil {
-      DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
-      return
-    }
-    DefaultOutput(ctx, 200, results)
+    searchAndOutput(params, ctx)
   }
 }
 
@@ -66,12 +58,7 @@ func QuerySearchByColumn(urlParam, column string) gin.HandlerFunc {
       addComparison(params, column, ctx.Param(urlParam))
     }
     convertComparisonDates(params,sch)
-    results, err := search(params, ctx)
-    if err != nil {
-      DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
-      return
-    }
-    DefaultOutput(ctx, 200, results)
+    searchAndOutput(params, ctx)
   }
 }
 
@@ -81,13 +68,22 @@ func GetByID(urlParam string) gin.HandlerFunc {
     model := GetModel(ctx)
     sch := GetModelSchema(ctx)
     pKeyColumn := sch.PrioritizedPrimaryField.DBName
-    var results []DefaultMap
+    results := make(DefaultMap)
     if err := db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).First(&results).Error; err != nil {
       DefaultOutput(ctx, 404, gin.H{"error": err.Error()})
       return
     }
-    DefaultOutput(ctx, 200, results[0])
+    DefaultOutput(ctx, 200, results)
   }
+}
+
+func searchAndOutput(params ComparisonMap, ctx *gin.Context) {
+  results, err := search(params, ctx)
+  if err != nil {
+    DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
+    return
+  }
+  DefaultOutput(ctx, 200, results)
 }
 
 func search(params ComparisonMap, ctx *gin.Context) ([]DefaultMap, error) {
@@ -99,13 +95,13 @@ func search(params ComparisonMap, ctx *gin.Context) ([]DefaultMap, error) {
     if err := mdl.MatchAnyMapToModel(params.toDefaultMap(), sch); err != nil {
       return nil, err
     }
-    db = buildWhere(db, params)
+    db = buildWhere(db, params, sch)
   }
-  err := db.Model(model).Find(&results).Error
+  db.Model(model).Find(&results)
   if results == nil {
     results = make([]DefaultMap, 0, 0)
   }
-  return results, err
+  return results, nil
 }
 
 func bindQuery(ctx *gin.Context) ComparisonMap {
@@ -138,9 +134,11 @@ func createComparisons(m DefaultMap) ComparisonMap {
   return comps
 }
 
-func buildWhere(db *gorm.DB, params ComparisonMap) (*gorm.DB) {
+func buildWhere(db *gorm.DB, params ComparisonMap, sch schema.Schema) (*gorm.DB) {
   for param, comp := range params {
-    db = db.Where(comp.WhereString(param), comp.Value)
+    if _, exist := sch.FieldsByDBName[param] ; exist {
+      db = db.Where(comp.WhereString(param), comp.Value)
+    }
   }
   return db
 }
