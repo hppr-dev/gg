@@ -391,7 +391,7 @@ func initDB() {
 }
 
 func getRouter() *gin.Engine {
-  r := gin.Default()
+  r := gin.New()
   r.Use(Middleware(testConfig))
   return r
 }
