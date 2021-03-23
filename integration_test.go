@@ -86,6 +86,15 @@ func TestDeleteByID(t *testing.T) {
   assertEqual(t, resp.Code, 200)
 }
 
+func TestDeleteByIDBadID(t *testing.T) {
+  router := getRouter()
+  router.DELETE("/:id", SetModel(&TestModel{}), DeleteByID("id"))
+
+  resp := runRequest(router, "DELETE", "/4000", nil)
+
+  assertEqual(t, 404, resp.Code)
+}
+
 func TestMutateByID(t *testing.T) {
   router := getRouter()
   router.GET("/:id", SetModel(&TestModel{}), MutateByID("id", func(m interface{}) interface{} {
@@ -104,6 +113,21 @@ func TestMutateByID(t *testing.T) {
   t.Logf("%v", jsonResp)
 }
 
+func TestMutateByIDMissingID(t *testing.T) {
+  router := getRouter()
+  router.GET("/:id", SetModel(&TestModel{}), MutateByID("id", func(m interface{}) interface{} {
+    n := m.(*TestModel)
+    n.Name += " world"
+    return n
+  }))
+
+  resp := runRequest(router, "GET", "/8000", nil)
+  jsonResp := extractMapBody(resp)
+
+  assertEqual(t, 404, resp.Code)
+  t.Logf("%v", jsonResp)
+}
+
 func TestQuerySearchSimple(t *testing.T) {
   router := getRouter()
   router.GET("/testmodel", SetModel(&TestModel{}), QuerySearch())
@@ -113,6 +137,18 @@ func TestQuerySearchSimple(t *testing.T) {
 
   assertEqual(t, 200, resp.Code)
   assertEqual(t, 2, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
+func TestQuerySearchMultiple(t *testing.T) {
+  router := getRouter()
+  router.GET("/testmodel", SetModel(&TestModel{}), QuerySearch())
+
+  resp := runRequest(router, "GET", "/testmodel?rating_gt=2.0&rating_lte=5.0", nil)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 5, len(jsonResp))
   t.Logf("%v", jsonResp)
 }
 
@@ -138,6 +174,19 @@ func TestBodySearchSimple(t *testing.T) {
 
   assertEqual(t, 200, resp.Code)
   assertEqual(t, 2, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
+func TestBodySearchMultiple(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("rating_gt", 2.0, "rating_lte", 5.0)
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 5, len(jsonResp))
   t.Logf("%v", jsonResp)
 }
 
@@ -305,7 +354,6 @@ func TestGetByIDMissingID(t *testing.T) {
   jsonResp := extractMapBody(resp)
 
   assertEqual(t, 404, resp.Code)
-  assertEqual(t, "record not found", jsonResp["error"])
   t.Logf("%v", jsonResp)
 }
 
@@ -321,6 +369,35 @@ func TestUpdateByID(t *testing.T) {
   assertEqual(t, 200, resp.Code)
   assertEqual(t, "runnings", jsonResp["name"])
   assertEqual(t, id, jsonResp["id"])
+  t.Logf("%v", jsonResp)
+}
+
+func TestUpdateByIDBadArgs(t *testing.T) {
+  router := getRouter()
+  router.PUT("/:id", SetModel(&TestModel{}), UpdateByID("id"))
+  id := create("brick", 0.0).ID
+
+  body := buildJsonBytes("lamp", "ramp")
+  resp := runRequest(router, "PUT", fmt.Sprintf("/%d", id), body)
+  jsonResp := extractMapBody(resp)
+
+  _, hasErrorMsg := jsonResp["error"]
+  assertEqual(t, 400, resp.Code)
+  assertEqual(t, true, hasErrorMsg)
+  t.Logf("%v", jsonResp)
+}
+
+func TestUpdateByIDBadID(t *testing.T) {
+  router := getRouter()
+  router.PUT("/:id", SetModel(&TestModel{}), UpdateByID("id"))
+
+  body := buildJsonBytes("rating", 1.9)
+  resp := runRequest(router, "PUT", "/9000", body)
+  jsonResp := extractMapBody(resp)
+
+  _, hasErrorMsg := jsonResp["error"]
+  assertEqual(t, 404, resp.Code)
+  assertEqual(t, true, hasErrorMsg)
   t.Logf("%v", jsonResp)
 }
 

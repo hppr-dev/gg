@@ -14,20 +14,16 @@ func UpdateByID(urlParam string) gin.HandlerFunc {
     ctx.BindJSON(&dataMap)
     pKeyColumn := schema.PrioritizedPrimaryField.DBName
     if err := mdl.MatchAnyMapToModel(dataMap, schema); err != nil {
-      DefaultOutput(ctx, 500, gin.H{"error": err.Error()})
+      DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
       return
     }
     db := GetDatabase(ctx)
     result := db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).Updates(dataMap)
-    if result.Error != nil {
-      DefaultOutput(ctx, 500, gin.H{"error": result.Error.Error()})
+    if result.RowsAffected == 0 {
+      DefaultOutput(ctx, 404, gin.H{"error": "not found"})
       return
     }
-    findResult := db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).First(&updated)
-    if findResult.Error != nil {
-      DefaultOutput(ctx, 500, gin.H{"error": findResult.Error.Error()})
-      return
-    }
+    db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).First(updated)
     DefaultOutput(ctx, 200, updated)
   }
 }

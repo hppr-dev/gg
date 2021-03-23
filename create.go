@@ -19,9 +19,7 @@ func BodyCreate() gin.HandlerFunc {
     modelRef := mdl.NewModel(model)
     ctx.ShouldBindBodyWith(&modelRef, binding.JSON)
     db := GetDatabase(ctx)
-    if err := db.Model(model).Create(modelRef).Error; err != nil {
-      DefaultOutput(ctx, 500, gin.H{"error": err.Error()})
-    }
+    db.Model(model).Create(modelRef)
     DefaultOutput(ctx, 201, convertStructToOutMap(modelRef, schema))
   }
 }

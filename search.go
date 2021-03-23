@@ -20,12 +20,12 @@ func (c Comparison) WhereString(param string) string {
   return fmt.Sprintf("%s %s ?", param, c.Operator)
 }
 
-type ComparisonMap map[string]Comparison
+type ComparisonMap map[string][]Comparison
 
-func (cm ComparisonMap) toDefaultMap() DefaultMap {
+func (cm ComparisonMap) toKeyMap() DefaultMap {
   dm := make(DefaultMap)
-  for k,c := range cm {
-    dm[k] = c.Value
+  for k := range cm {
+    dm[k] = true
   }
   return dm
 }
@@ -44,7 +44,7 @@ func BodySearchByColumn(urlParam, column string) gin.HandlerFunc {
     ctx.BindJSON(&dataMap)
     params := createComparisons(dataMap)
     if column != "" && urlParam != "" {
-      addComparison(params, column, ctx.Param(urlParam))
+      params.addComparison(column, ctx.Param(urlParam))
     }
     searchAndOutput(params, ctx)
   }
@@ -55,7 +55,7 @@ func QuerySearchByColumn(urlParam, column string) gin.HandlerFunc {
     sch := GetModelSchema(ctx)
     params := bindQuery(ctx)
     if column != "" && urlParam != "" {
-      addComparison(params, column, ctx.Param(urlParam))
+      params.addComparison(column, ctx.Param(urlParam))
     }
     convertComparisonDates(params,sch)
     searchAndOutput(params, ctx)
@@ -68,12 +68,13 @@ func GetByID(urlParam string) gin.HandlerFunc {
     model := GetModel(ctx)
     sch := GetModelSchema(ctx)
     pKeyColumn := sch.PrioritizedPrimaryField.DBName
-    results := make(DefaultMap)
-    if err := db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).First(&results).Error; err != nil {
-      DefaultOutput(ctx, 404, gin.H{"error": err.Error()})
+    data := make(DefaultMap)
+    result := db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).Find(&data)
+    if result.RowsAffected == 0 {
+      DefaultOutput(ctx, 404, gin.H{"error": "not found"})
       return
     }
-    DefaultOutput(ctx, 200, results)
+    DefaultOutput(ctx, 200, data)
   }
 }
 
@@ -92,7 +93,7 @@ func search(params ComparisonMap, ctx *gin.Context) ([]DefaultMap, error) {
   model := GetModel(ctx)
   var results []DefaultMap
   if len(params) > 0 {
-    if err := mdl.MatchAnyMapToModel(params.toDefaultMap(), sch); err != nil {
+    if err := mdl.MatchAnyMapToModel(params.toKeyMap(), sch); err != nil {
       return nil, err
     }
     db = buildWhere(db, params, sch)
@@ -108,7 +109,7 @@ func bindQuery(ctx *gin.Context) ComparisonMap {
   m := make(ComparisonMap)
   for k, vs := range ctx.Request.URL.Query() {
     v := strings.Join(vs, "")
-    addComparison(m, k, v)
+    m.addComparison(k, v)
   }
   return m
 }
@@ -117,9 +118,11 @@ func convertComparisonDates(comparisons ComparisonMap, sch schema.Schema) error 
   var err error
   fields := sch.Fields
   for _, field := range fields {
-    if comp, present := comparisons[field.DBName]; present && field.FieldType == reflect.TypeOf(time.Time{}) {
-      if comp.Value, err = time.Parse(time.RFC3339Nano, comp.Value.(string)); err != nil {
-        return err
+    if comps, present := comparisons[field.DBName]; present && field.FieldType == reflect.TypeOf(time.Time{}) {
+      for _, comp := range comps {
+        if comp.Value, err = time.Parse(time.RFC3339Nano, comp.Value.(string)); err != nil {
+          return err
+        }
       }
     }
   }
@@ -129,33 +132,53 @@ func convertComparisonDates(comparisons ComparisonMap, sch schema.Schema) error 
 func createComparisons(m DefaultMap) ComparisonMap {
   comps := make(ComparisonMap)
   for k, v := range m {
-    addComparison(comps, k, v)
+    comps.addComparison(k, v)
   }
   return comps
 }
 
 func buildWhere(db *gorm.DB, params ComparisonMap, sch schema.Schema) (*gorm.DB) {
-  for param, comp := range params {
+  for param, comps := range params {
     if _, exist := sch.FieldsByDBName[param] ; exist {
-      db = db.Where(comp.WhereString(param), comp.Value)
+      for _, comp := range comps {
+        db = db.Where(comp.WhereString(param), comp.Value)
+      }
     }
   }
   return db
 }
 
-func addComparison(m ComparisonMap, k string, v interface{}) {
+func (m ComparisonMap) addComparison(k string, v interface{}) {
+  var key, op string
   switch {
     case strings.HasSuffix(k, "_gte"):
-      m[strings.TrimSuffix(k, "_gte")] = Comparison{Value: v, Operator: ">=" }
+      key = strings.TrimSuffix(k, "_gte")
+      op = ">="
     case strings.HasSuffix(k, "_lte"):
-      m[strings.TrimSuffix(k, "_lte")] = Comparison{Value: v, Operator: "<=" }
+      key = strings.TrimSuffix(k, "_lte")
+      op = "<="
     case strings.HasSuffix(k, "_gt"):
-      m[strings.TrimSuffix(k, "_gt")] = Comparison{Value: v, Operator: ">" }
+      key = strings.TrimSuffix(k, "_gt")
+      op = ">"
     case strings.HasSuffix(k, "_lt"):
-      m[strings.TrimSuffix(k, "_lt")] = Comparison{Value: v, Operator: "<"}
+      key = strings.TrimSuffix(k, "_lt")
+      op = "<"
     case strings.HasSuffix(k, "_ne"):
-      m[strings.TrimSuffix(k, "_ne")] = Comparison{Value: v, Operator: "<>"}
+      key = strings.TrimSuffix(k, "_ne")
+      op = "<>"
     default:
-      m[k] = Comparison{Value: v, Operator: "="}
+      key = k
+      op = "="
+  }
+  m.addValueToList(key, op, v)
+}
+
+func (m ComparisonMap) addValueToList(k, op string, v interface{}) {
+  comp := Comparison{Value: v, Operator: op}
+  sl, exist := m[k]
+  if !exist {
+    m[k] = []Comparison{comp}
+  } else {
+    m[k] = append(sl, comp)
   }
 }

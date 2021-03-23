@@ -17,8 +17,9 @@ func MutateByID(urlParam string, mutator Mutator) gin.HandlerFunc {
     db := GetDatabase(ctx)
     pKeyColumn := sch.PrioritizedPrimaryField.DBName
     result := db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).Find(instance)
-    if result.Error != nil {
-      DefaultOutput(ctx, 400, gin.H{"message": result.Error.Error()})
+    if result.RowsAffected == 0 {
+      DefaultOutput(ctx, 404, gin.H{"error": "not found"})
+      return
     }
     updated := mutator(instance)
     db.Model(model).Where(pKeyColumn + " = ?", ctx.Param(urlParam)).Updates(updated)
