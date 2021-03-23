@@ -12,27 +12,31 @@ type DefaultMap = map[string]interface{}
 
 type ModelSchemaMap map[reflect.Type]schema.Schema
 
+// GetSchema get the given gorm model schema from the schema map
 func (m ModelSchemaMap) GetSchema(model interface{}) schema.Schema {
   return m[reflect.TypeOf(model)]
 }
 
+// GetModelSchema is a utility function that retrieves the gorm schema from the gin.Context
 func GetModelSchema(ctx *gin.Context) schema.Schema {
   return getContextVar("ModelSchema", ctx).(schema.Schema)
 }
 
+// GetModel is a utility funciton that retrieves the current model from the gin.Context
 func GetModel(ctx *gin.Context) interface{} {
   return getContextVar("Model", ctx)
 }
 
+// GetDatabase is a utility function that retreives the gorm.DB instance from the gin.Context
 func GetDatabase(ctx *gin.Context) *gorm.DB {
   return getContextVar("DB", ctx).(*gorm.DB)
 }
 
-func GetSchemaMap(ctx *gin.Context) ModelSchemaMap {
+func getSchemaMap(ctx *gin.Context) ModelSchemaMap {
   return getContextVar("SchemaMap", ctx).(ModelSchemaMap)
 }
 
-func GetDefaultOutputFunction(ctx *gin.Context) output {
+func getDefaultOutputFunction(ctx *gin.Context) output {
   return getContextVar("DefaultOutput", ctx).(func(*gin.Context) output)(ctx)
 }
 

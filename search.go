@@ -11,11 +11,13 @@ import (
   "hppr.dev/gg/mdl"
 )
 
+// Comparison is the basic building block of a search query
 type Comparison struct {
   Operator string
   Value interface{}
 }
 
+// WhereString creates the substitution string necesarry for a db.Where() call
 func (c Comparison) WhereString(param string) string {
   return fmt.Sprintf("%s %s ?", param, c.Operator)
 }
@@ -30,14 +32,17 @@ func (cm ComparisonMap) toKeyMap() DefaultMap {
   return dm
 }
 
+// QuerySearch returns a handler suitable for searching using the query parameters in the url
 func QuerySearch() gin.HandlerFunc {
   return QuerySearchByColumn("", "")
 }
 
+// BodySearch returns a handler suitable for searching using the request post data
 func BodySearch() gin.HandlerFunc {
   return BodySearchByColumn("", "")
 }
 
+// BodySearchByColumn returns a handler for searching where one column is provided in the url as a url parameter and more search parameters may be provided through the post data
 func BodySearchByColumn(urlParam, column string) gin.HandlerFunc {
   return func(ctx *gin.Context) {
     var dataMap DefaultMap
@@ -50,6 +55,7 @@ func BodySearchByColumn(urlParam, column string) gin.HandlerFunc {
   }
 }
 
+// QuerySearchByColumn returns a handler for searching where one column is provided in the url and other search parameters may be provided through the query string
 func QuerySearchByColumn(urlParam, column string) gin.HandlerFunc {
   return func(ctx *gin.Context) {
     sch := GetModelSchema(ctx)
@@ -62,6 +68,7 @@ func QuerySearchByColumn(urlParam, column string) gin.HandlerFunc {
   }
 }
 
+// GetByID returns a handler that searches for a particular record by it's primary key provided through a url parameter
 func GetByID(urlParam string) gin.HandlerFunc {
   return func(ctx *gin.Context) {
     db := GetDatabase(ctx)

@@ -6,6 +6,7 @@ import (
   "hppr.dev/gg/mdl"
 )
 
+// BodyCreate returns a handler that creates a model record based on post data
 func BodyCreate() gin.HandlerFunc {
   return func(ctx *gin.Context) {
     schema := GetModelSchema(ctx)

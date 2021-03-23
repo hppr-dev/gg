@@ -9,6 +9,7 @@ import (
 
 type Mutator func(interface{}) interface{}
 
+// MutateByID returns a handler that mutates, i.e. changes, the model using the given function then pushes it back to the database
 func MutateByID(urlParam string, mutator Mutator) gin.HandlerFunc {
   return func(ctx *gin.Context) {
     model := GetModel(ctx)

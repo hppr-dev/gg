@@ -5,6 +5,7 @@ import (
   "hppr.dev/gg/mdl"
 )
 
+// UpdateByID returns a handler that uses post data to update the model record with the id from the url parameter
 func UpdateByID(urlParam string) gin.HandlerFunc {
   return func(ctx *gin.Context) {
     dataMap := make(DefaultMap)

@@ -1,12 +1,10 @@
 # Gin Gorm Middleware
 
-Gin middleware to create api endpoints for models.
-Allows the reuse of gorm models between endpoints.
-See hopper for a default implementation with migration control.
+Gin middleware to create api endpoints for gorm models.
 
 # Using The middleware
 
-Activate the middleware by calling Use on your instance of the gin.Engine (from gin.Default(), gin.New(), etc).
+Activate the middleware by calling Use on your instance of gin.Engine (from gin.Default(), gin.New(), etc).
 Then you may call the provided handler functions to set up basic endpoints.
 
 Simple example server:
@@ -24,7 +22,7 @@ Simple example server:
     Name string
     Password string
   }
-  type Port struct {
+  type Post struct {
     gorm.Model
     Text string
     UserID uint64
@@ -34,21 +32,29 @@ Simple example server:
 
   func main() {
     engine := gin.Default()
+
     models := []interface{}{
       &User{},
       &Post{],
     }
+
     cfg := gg.Config{
       GormConfig: &gorm.Config{},
       Database: &gg.SQLiteDatabase{"user.db"},
       Models: models,
       OutputFormat: gg.IndentedJSON
     }
+
     engine.Use(gg.Middleware(cfg))
+
+    db, _ := cfg.OpenDB()
+    db.AutoMigrate(models...)
+
     engine.GET("/user", gg.SetModel(&User{}), gg.QuerySearch())
     engine.POST("/user", gg.SetModel(&User{}), gg.BodyCreate())
     engine.GET("/post", gg.SetModel(&Post{}), gg.QuerySearch())
     engine.POST("/post", gg.SetModel(&Post{}), gg.BodyCreate())
+
     engine.Run()
   }
 ```
@@ -57,7 +63,7 @@ Simple example server:
 
 ## QuerySearch, BodySearch
 
-QuerySearch and BodySearch serve the same purpose: search through tables.
+QuerySearch and BodySearch serve the same purpose: search tables.
 QuerySearch uses the query string for search parameters.
 BodySearch uses post data for search parameters.
 
@@ -76,8 +82,12 @@ Available suffixs are :
 * `_gte, _gt` - greater than or equal, greater than
 * `_lte`,`_lt` - less than or equal, less than
 * `_ne` - not equal
-* `_like` - like
-* `_between` - between
+
+Multiple search parameters are allowed on the same column name:
+
+```
+  curl "http://localhost/user?id_gte=5&id_lt=10"
+```
 
 ## SearchByColumn
 
@@ -196,5 +206,5 @@ The GetCount function could be rewritten with provided convenience functions:
   }
 ```
 
-The above also has the added benifit of allowing the switching of output types based on the Config.DefaultOutputFormat value.
+The above also has the added benefit of allowing the switching of output types based on the Config.DefaultOutputFormat value.
 

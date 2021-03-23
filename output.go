@@ -6,14 +6,21 @@ import (
 
 type OutputFormat uint8
 
-//Output formats
+//Available Output formats
 const (
+  // JSON will use ctx.JSON
   JSON = iota
+  // IndentedJSON will use ctx.IndentedJSON
   IndentedJSON
+  // YAML will use ctx.YAML
   YAML
+  // SecureJSON will use ctx.SecureJSON
   SecureJSON
+  // JSONP will use ctx.JSONP
   JSONP
+  // AsciiJSON will use ctx.AsciiJSON
   AsciiJSON
+  // PureJSON will use ctx.PureJSON
   PureJSON
 )
 
@@ -21,11 +28,13 @@ type output = func(int, interface{})
 
 type contextOutput = func(*gin.Context) output
 
+// DefaultOutput uses the gg.Config's DefaultOutputFormat to output API information
+// i.e. if DefaultOutputFormat is JSON, calling DefaultOutput(ctx, 200, gin.H{"msg": "hello"}) would be equivalent to ctx.JSON(200, gin.H{"msg": "hello"})
 func DefaultOutput(ctx *gin.Context, code int, obj interface{}) {
-  GetDefaultOutputFunction(ctx)(code,obj)
+  getDefaultOutputFunction(ctx)(code,obj)
 }
 
-func GetOutputFunction(format OutputFormat) contextOutput {
+func getOutputFunction(format OutputFormat) contextOutput {
   switch format {
     case JSON:
       return outputJson

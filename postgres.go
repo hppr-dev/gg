@@ -6,6 +6,7 @@ import (
   "gorm.io/driver/postgres"
 )
 
+// PostgresConfig represents a Postgres Database configuration 
 type PostgresConfig struct {
   Host string
   Port int

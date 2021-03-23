@@ -24,6 +24,7 @@ type DatabaseConfigurer interface {
   GetDSN() string
 }
 
+// Utility method to open the gorm database from config
 func (cfg Config) OpenDB() (*gorm.DB, error) {
   return database.Open(cfg.Database.Configure(), cfg.OnDBOpen, cfg.Gorm)
 }

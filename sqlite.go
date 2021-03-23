@@ -5,6 +5,7 @@ import (
   "gorm.io/driver/sqlite"
 )
 
+// SQLiteConfig represents an SQLite database configuration
 type SQLiteConfig struct {
   File string
 }
