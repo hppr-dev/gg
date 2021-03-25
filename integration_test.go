@@ -216,6 +216,19 @@ func TestBodySearchNoResults(t *testing.T) {
   t.Logf("%v", jsonResp)
 }
 
+func TestBodySearchDropTables(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("name", "anton;drop table test_models;")
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 0, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
 func TestBodySearchNonmatching(t *testing.T) {
   router := getRouter()
   router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
@@ -303,6 +316,19 @@ func TestBodySearchNotEqual(t *testing.T) {
 
   assertEqual(t, 200, resp.Code)
   assertEqual(t, 14, len(jsonResp))
+  t.Logf("%v", jsonResp)
+}
+
+func TestBodySearchContains(t *testing.T) {
+  router := getRouter()
+  router.POST("/testmodel", SetModel(&TestModel{}), BodySearch())
+
+  body := buildJsonBytes("name_contains", "an")
+  resp := runRequest(router, "POST", "/testmodel", body)
+  jsonResp := extractSliceBody(resp)
+
+  assertEqual(t, 200, resp.Code)
+  assertEqual(t, 4, len(jsonResp))
   t.Logf("%v", jsonResp)
 }
 
@@ -478,6 +504,7 @@ func initDB() {
   create("chris",  1.0 )
   create("ostio",  -3.0 )
   create("reg",    4.0 )
+  create("anthon", 0.0 )
 }
 
 func getRouter() *gin.Engine {

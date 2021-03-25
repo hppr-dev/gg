@@ -7,6 +7,8 @@ Gin middleware to create api endpoints for gorm models.
 Activate the middleware by calling Use on your instance of gin.Engine (from gin.Default(), gin.New(), etc).
 Then you may call the provided handler functions to set up basic endpoints.
 
+Note: migration is outside of the scope of this project. Make sure to apply migrations before running the server.
+
 Simple example server:
 
 ```
@@ -35,7 +37,7 @@ Simple example server:
 
     models := []interface{}{
       &User{},
-      &Post{],
+      &Post{},
     }
 
     cfg := gg.Config{
@@ -82,6 +84,7 @@ Available suffixs are :
 * `_gte, _gt` - greater than or equal, greater than
 * `_lte`,`_lt` - less than or equal, less than
 * `_ne` - not equal
+* `_contains` - string contains
 
 Multiple search parameters are allowed on the same column name:
 

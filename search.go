@@ -173,6 +173,10 @@ func (m ComparisonMap) addComparison(k string, v interface{}) {
     case strings.HasSuffix(k, "_ne"):
       key = strings.TrimSuffix(k, "_ne")
       op = "<>"
+    case strings.HasSuffix(k, "_contains"):
+      key = strings.TrimSuffix(k, "_contains")
+      op = "LIKE"
+      v = fmt.Sprintf("%%%v%%", v)
     default:
       key = k
       op = "="
