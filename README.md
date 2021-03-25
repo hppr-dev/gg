@@ -63,7 +63,7 @@ Simple example server:
 
 # Generic handler functions
 
-## QuerySearch, BodySearch
+## QuerySearch, BodySearch,
 
 QuerySearch and BodySearch serve the same purpose: search tables.
 QuerySearch uses the query string for search parameters.
@@ -75,6 +75,20 @@ BodySearch uses post data for search parameters.
 
   // curl "http://localhost/user" -XPOST -d '{"id_gte" : 5}'
   engine.POST('/user', gg.SetModel(&User{}), gg.BodySearch())
+```
+
+## QuerySearchByColumn, BodySearchByColumn
+
+Queries the database for entries with a column that matches the url parameter.
+
+```
+  engine.GET('/user/:q', gg.SetModel(&User{}), gg.QuerySearchByColumn("q", "group"))
+```
+
+Also supports search parameters in the column field:
+
+```
+  engine.GET('/user/:q', gg.SetModel(&User{}), gg.querySearchByColumn("q", "id_gte"))
 ```
 
 ### Search Parameters
@@ -92,19 +106,7 @@ Multiple search parameters are allowed on the same column name:
   curl "http://localhost/user?id_gte=5&id_lt=10"
 ```
 
-## SearchByColumn
-
-Queries the database for entries with a column that matches the url parameter.
-
-```
-  engine.GET('/user/:q', gg.SetModel(&User{}), gg.SearchByColumn("q", "group"))
-```
-
-Also supports search parameters in the column field:
-
-```
-  engine.GET('/user/:q', gg.SetModel(&User{}), gg.SearchByColumn("q", "id_gte"))
-```
+Only AND conditions are supported for the time being.
 
 ## GetByID
 
