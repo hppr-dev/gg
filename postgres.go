@@ -21,11 +21,24 @@ func (cfg PostgresConfig) Configure() gorm.Dialector {
   return postgres.Open(cfg.GetDSN())
 }
 
+func (cfg *PostgresConfig) setDefaults() {
+  if cfg.Host == "" {
+    cfg.Host = "localhost"
+  }
+  if cfg.Port == 0 {
+    cfg.Port = 5432
+  }
+  if cfg.TimeZone == "" {
+    cfg.TimeZone = "UTC"
+  }
+}
+
 func (cfg PostgresConfig) GetDSN() string {
   sslMode := "disable"
   if cfg.SSL {
     sslMode = "enable"
   }
+  cfg.setDefaults()
   return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=%s",
     cfg.Host,
     cfg.User,

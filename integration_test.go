@@ -21,11 +21,24 @@ type TestModel struct {
   Rating float64
 }
 
-var testConfig = Config{
+var inmemConfig = Config{
   Gorm: &gorm.Config{},
   Database: InMemConfig{},
   Models: []interface{}{&TestModel{}},
 }
+
+var postgresConfig = Config{
+  Gorm: &gorm.Config{},
+  Database: PostgresConfig{
+    User: "tester",
+    DatabaseName: "tester",
+    Password: "test",
+    SSL: false,
+  },
+  Models: []interface{}{&TestModel{}},
+}
+
+var testConfig = inmemConfig
 
 func TestMain(m *testing.M) {
   gin.SetMode(gin.TestMode)
