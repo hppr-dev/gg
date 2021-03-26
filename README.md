@@ -152,15 +152,6 @@ Mutates a model using a mutator function.
   engine.GET('/user/:id/assign', gg.SetModel(&User{}), gg.MutateByID("id", func(m interface{}) interface{} { model := m.(User) })) 
 ```
 
-## MutateColumn
-
-Mutates a column using a mutator function
-The mutator function must accept and return the type of the given column for the model.
-
-```
-  engine.GET('/user/:id/increment', gg.SetModel(&User{}), gg.MutateColumn("id", "column", func(count int) int { return count++ })) 
-```
-
 # Middleware
 
 The middleware sets three keys in the context:
