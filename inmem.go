@@ -1,7 +1,7 @@
 package gg
 
 import (
-  "gorm.io/gorm"
+	"gorm.io/gorm"
 )
 
 // InMemConfig is a database configuration for an in memory sqlite database
@@ -9,9 +9,9 @@ import (
 type InMemConfig SQLiteConfig
 
 func (i InMemConfig) Configure() gorm.Dialector {
-  return  SQLiteConfig{i.GetDSN()}.Configure()
+	return SQLiteConfig{i.GetDSN()}.Configure()
 }
 
-func (InMemConfig) GetDSN() string{
-  return "file::memory:?cache=shared"
+func (InMemConfig) GetDSN() string {
+	return "file::memory:?cache=shared"
 }

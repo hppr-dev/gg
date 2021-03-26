@@ -1,19 +1,19 @@
 package gg
 
 import (
-  "gorm.io/gorm"
-  "gorm.io/driver/sqlite"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 // SQLiteConfig represents an SQLite database configuration
 type SQLiteConfig struct {
-  File string
+	File string
 }
 
 func (cfg SQLiteConfig) Configure() gorm.Dialector {
-  return sqlite.Open(cfg.GetDSN())
+	return sqlite.Open(cfg.GetDSN())
 }
 
 func (cfg SQLiteConfig) GetDSN() string {
-  return cfg.File
+	return cfg.File
 }
