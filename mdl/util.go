@@ -6,6 +6,17 @@ import (
 	"reflect"
 )
 
+type ModelColumnInfo map[string]ColumnInfo
+
+type ColumnInfo struct{
+  DBName string
+  StructName string
+  Required bool
+  HasDefault bool
+  ColumnType reflect.Type
+  SchemaField *schema.Field
+}
+
 func NewModel(model interface{}) interface{} {
 	return reflect.New(followPtr(model).Type()).Interface()
 }
@@ -18,6 +29,23 @@ func GetDBSchema(model interface{}, db *gorm.DB) schema.Schema {
 	var count int64
 	return *db.Model(model).Count(&count).Statement.Schema
 }
+
+func GetModelColumnInfo(model interface{}, db *gorm.DB) ModelColumnInfo {
+  modelSchema := GetDBSchema(model, db)
+	names := make(ModelColumnInfo)
+	for _, field := range modelSchema.Fields {
+		names[field.DBName] = ColumnInfo{
+      DBName     : field.DBName,
+      StructName : field.Name,
+      Required   : !isAutoCreatable(field),
+      HasDefault : field.HasDefaultValue,
+      ColumnType : field.FieldType,
+      SchemaField: field,
+    }
+	}
+	return names
+}
+
 
 func ExtractModelIDs(schema schema.Schema, anonModel interface{}) map[string]interface{} {
 	primaryFields := schema.PrimaryFields

@@ -3,6 +3,7 @@ package gg
 import (
 	"gorm.io/gorm"
 	"hppr.dev/gg/database"
+  "hppr.dev/gg/mdl"
 )
 
 // Gingorm Configuration
@@ -27,4 +28,9 @@ type DatabaseConfigurer interface {
 // Utility method to open the gorm database from config
 func (cfg Config) OpenDB() (*gorm.DB, error) {
 	return database.Open(cfg.Database.Configure(), cfg.OnDBOpen, cfg.Gorm)
+}
+
+func (cfg Config) GetModelColumnInfo(model interface{}) mdl.ModelColumnInfo {
+  db, _ := cfg.OpenDB()
+  return mdl.GetModelColumnInfo(model, db)
 }
