@@ -184,8 +184,8 @@ The following would create two endpoints that provide the count of Users and Pos
   }
 
   func GetCount(ctx *gin.Context) {
-    db := ctx.Get("DB").(*gorm.DB)
-    model := ctx.Get("Model")
+    db := ctx.MustGet("DB").(*gorm.DB)
+    model := ctx.MustGet("Model")
     count := db.Model(model).Count()
     ctx.JSON(200, gin.H{ 'count' : count })
   }
@@ -204,3 +204,40 @@ The GetCount function could be rewritten with provided convenience functions:
 
 The above also has the added benefit of allowing the switching of output types based on the Config.DefaultOutputFormat value.
 
+# Hooks
+
+GinGorm provides similar model hooks to gorm.
+GinGorm adds the ability to access the current *gin.Context, as well as the DB.
+
+Note: These hooks happen at they're alloted time synchronously in the request process (i.e. either before or after the action).
+This means:
+- If any before hook panics, the models in question will not be committed.
+- If any after hook panics, the requested action has already taken place on the database, and will not be rolled back.
+For this reason it is advised to handle errors in after hooks and not let them bubble out to gin.
+
+Note: Before hooks happen before the database is touched and after hooks happen after.
+A side effect to this is:
+- The models provided to the Before hooks will not be populated with anything
+- The models provided to the After hooks will have values from the database and will only affect the returned representation of the model.
+
+For all hooks except AfterFindWithContext if it returns a non-nil error, it is assumed that the context has been set with the appropriate response and request handling terminates.
+If AfterFindWithContext returns a non-nil error, the server will return a status code 400 with the returned error message.
+
+Available hooks:
+- Model Creation:
+  - BeforeCreateWithContext(ctx *gin.Context, db *gorm.DB) error 
+  - AfterCreateWithContext(ctx *gin.Context, db *gorm.DB) error 
+
+- Model Update:
+  - BeforeUpdateWithContext(ctx *gin.Context, db *gorm.DB) error 
+  - AfterUpdateWithContext(ctx *gin.Context, db *gorm.DB) error 
+
+- Model Delete
+  - BeforeDeleteWithContext(ctx *gin.Context, db *gorm.DB) error 
+  - AfterDeleteWithContext(ctx *gin.Context, db *gorm.DB) error 
+
+- Model Find
+  - AfterFindWithContext(ctx *gin.Context, db *gorm.DB) error 
+    - Note that this is called even if no results are found
+
+If you do not need the context for model hooks see [gorm hooks](https://gorm.io/docs/hooks.html).

@@ -19,11 +19,21 @@ func UpdateByID(urlParam string) gin.HandlerFunc {
 			return
 		}
 		db := GetDatabase(ctx)
+    if cast, ok := model.(BeforeUpdateWithContexter) ; ok {
+      if err := cast.BeforeUpdateWithContext(ctx, db); err != nil {
+        return
+      }
+    }
 		result := db.Model(model).Where(pKeyColumn+" = ?", ctx.Param(urlParam)).Updates(dataMap)
 		if result.RowsAffected == 0 {
 			DefaultOutput(ctx, 404, gin.H{"error": "not found"})
 			return
 		}
+    if cast, ok := model.(AfterUpdateWithContexter) ; ok {
+      if err := cast.AfterUpdateWithContext(ctx, db); err != nil {
+        return
+      }
+    }
 		db.Model(model).Where(pKeyColumn+" = ?", ctx.Param(urlParam)).First(updated)
 		DefaultOutput(ctx, 200, updated)
 	}

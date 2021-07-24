@@ -109,6 +109,11 @@ func search(params ComparisonMap, ctx *gin.Context) ([]DefaultMap, error) {
 	if results == nil {
 		results = make([]DefaultMap, 0, 0)
 	}
+  if cast, ok := model.(AfterFindWithContexter) ; ok {
+    if err := cast.AfterFindWithContext(ctx, db) ; err != nil {
+      return nil, err
+    }
+  }
 	return results, nil
 }
 

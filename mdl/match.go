@@ -31,7 +31,9 @@ func MatchAllMapToModel(dataMap map[string]interface{}, schema schema.Schema) er
 func getModelColumnNames(schema schema.Schema, includeAuto bool) StringSet {
 	names := make(StringSet)
 	for _, field := range schema.Fields {
-		names[field.DBName] = !isAutoCreatable(field) || includeAuto
+    if field.DBName != "" {
+		  names[field.DBName] = !isAutoCreatable(field) || includeAuto
+    }
 	}
 	return names
 }

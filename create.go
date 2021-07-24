@@ -20,7 +20,17 @@ func BodyCreate() gin.HandlerFunc {
 		modelRef := mdl.NewModel(model)
 		ctx.ShouldBindBodyWith(&modelRef, binding.JSON)
 		db := GetDatabase(ctx)
+    if cast, ok := modelRef.(BeforeCreateWithContexter) ; ok {
+      if err := cast.BeforeCreateWithContext(ctx, db) ; err != nil {
+        return
+      }
+    }
 		db.Model(model).Create(modelRef)
+    if cast, ok := modelRef.(AfterCreateWithContexter) ; ok {
+      if err := cast.AfterCreateWithContext(ctx, db) ; err != nil {
+        return
+      }
+    }
 		DefaultOutput(ctx, 201, convertStructToOutMap(modelRef, schema))
 	}
 }
