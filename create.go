@@ -17,9 +17,9 @@ func BodyCreate() gin.HandlerFunc {
 			DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
 			return
 		}
+		db := GetDatabase(ctx)
 		modelRef := mdl.NewModel(model)
 		ctx.ShouldBindBodyWith(&modelRef, binding.JSON)
-		db := GetDatabase(ctx)
     if cast, ok := modelRef.(BeforeCreateWithContexter) ; ok {
       if err := cast.BeforeCreateWithContext(ctx, db) ; err != nil {
         return

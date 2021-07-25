@@ -1,8 +1,9 @@
 package mdl
 
 import (
-	"errors"
 	"fmt"
+	"errors"
+  "reflect"
 	"gorm.io/gorm/schema"
 )
 
@@ -31,8 +32,8 @@ func MatchAllMapToModel(dataMap map[string]interface{}, schema schema.Schema) er
 func getModelColumnNames(schema schema.Schema, includeAuto bool) StringSet {
 	names := make(StringSet)
 	for _, field := range schema.Fields {
-    if field.DBName != "" {
-		  names[field.DBName] = !isAutoCreatable(field) || includeAuto
+    if field.Name != "" {
+		  names[field.Name] = ( !isAutoCreatable(field) || includeAuto ) && field.FieldType.Kind() != reflect.Struct
     }
 	}
 	return names
@@ -41,3 +42,4 @@ func getModelColumnNames(schema schema.Schema, includeAuto bool) StringSet {
 func isAutoCreatable(f *schema.Field) bool {
 	return f.Creatable && (f.HasDefaultValue || f.AutoIncrement || f.AutoCreateTime != 0 || f.AutoUpdateTime != 0 || f.DBName == "deleted_at")
 }
+

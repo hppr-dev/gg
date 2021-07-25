@@ -1,6 +1,7 @@
 package gg
 
 import (
+  "reflect"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm/schema"
@@ -34,7 +35,9 @@ func convertStructToOutMap(model interface{}, sch schema.Schema) map[string]inte
 	json.Unmarshal(jsonBytes, &jsonOut)
 	conv := make(map[string]interface{})
 	for _, field := range sch.Fields {
-		conv[field.DBName] = jsonOut[field.Name]
+    if field.FieldType.Kind() != reflect.Struct {
+		  conv[field.Name] = jsonOut[field.Name]
+    }
 	}
 	return conv
 }
