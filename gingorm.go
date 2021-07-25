@@ -1,6 +1,7 @@
 package gg
 
 import (
+  "hppr.dev/gg/mdl"
 	"github.com/gin-gonic/gin"
 )
 
@@ -8,7 +9,9 @@ import (
 func SetModel(model interface{}) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		schemaMap := getSchemaMap(ctx)
-		ctx.Set("ModelSchema", schemaMap.GetSchema(model))
+    schema := schemaMap.GetSchema(model)
+		ctx.Set("ModelSchema", schema)
+		ctx.Set("MarshalType", mdl.CreateMarshalType(model, schema))
 		ctx.Set("Model", model)
 		ctx.Next()
 	}

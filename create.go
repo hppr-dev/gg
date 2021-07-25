@@ -2,35 +2,35 @@ package gg
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"hppr.dev/gg/mdl"
 )
 
 // BodyCreate returns a handler that creates a model record based on post data
 func BodyCreate() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		schema := GetModelSchema(ctx)
 		model := GetModel(ctx)
-		dataMap := make(DefaultMap)
-		ctx.ShouldBindBodyWith(&dataMap, binding.JSON)
-		if err := mdl.MatchAllMapToModel(dataMap, schema); err != nil {
-			DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
-			return
-		}
+		marshal := GetMarshalType(ctx)
+    jsonInputData := mdl.New(marshal)
+		gormData := mdl.New(model)
+		if err := ctx.ShouldBind(jsonInputData) ; err != nil {
+      DefaultOutput(ctx, 400, gin.H{"message" : "Failed to parse data."})
+      return
+    }
+    mdl.CopyFields(jsonInputData, gormData)
 		db := GetDatabase(ctx)
-		modelRef := mdl.NewModel(model)
-		ctx.ShouldBindBodyWith(&modelRef, binding.JSON)
-    if cast, ok := modelRef.(BeforeCreateWithContexter) ; ok {
+    if cast, ok := gormData.(BeforeCreateWithContexter) ; ok {
       if err := cast.BeforeCreateWithContext(ctx, db) ; err != nil {
         return
       }
     }
-		db.Model(model).Create(modelRef)
-    if cast, ok := modelRef.(AfterCreateWithContexter) ; ok {
+		db.Model(model).Create(gormData)
+    if cast, ok := gormData.(AfterCreateWithContexter) ; ok {
       if err := cast.AfterCreateWithContext(ctx, db) ; err != nil {
         return
       }
     }
-		DefaultOutput(ctx, 201, convertStructToOutMap(modelRef, schema))
+    jsonOutputData := mdl.New(marshal)
+    mdl.CopyFields(gormData, jsonOutputData)
+		DefaultOutput(ctx, 201, jsonOutputData)
 	}
 }

@@ -21,6 +21,10 @@ func NewModel(model interface{}) interface{} {
 	return reflect.New(followPtr(model).Type()).Interface()
 }
 
+func New(t interface{}) interface{} {
+	return reflect.New(followPtr(t).Type()).Interface()
+}
+
 func followPtr(model interface{}) reflect.Value {
 	return reflect.Indirect(reflect.ValueOf(model))
 }
