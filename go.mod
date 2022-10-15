@@ -1,4 +1,4 @@
-module hppr.dev/gg
+module go.hppr.dev/gg
 
 go 1.16
 
