@@ -32,7 +32,7 @@ var postgresConfig = Config{
 	Database: PostgresConfig{
 		User:         "tester",
 		DatabaseName: "tester",
-		Password:     "test",
+		Password:     "tester",
 		SSL:          false,
 	},
 	Models: []interface{}{&TestModel{}},
@@ -64,10 +64,10 @@ func TestBodyCreate(t *testing.T) {
 	router := getRouter()
 	router.POST("/", SetModel(&TestModel{}), BodyCreate())
 
-	body := buildJsonBytes("name", "tester", "rating", 0.0)
+	body := buildJsonBytes("name", "tester", "rating", 12.0)
 	resp := runRequest(router, "POST", "/", body)
 	jsonResp := extractMapBody(resp)
-	expected := buildMap("name", "tester", "rating", 0.0)
+	expected := buildMap("name", "tester", "rating", 12.0)
 
 	assertEqual(t, 201, resp.Code)
 	assertNotEqual(t, 0, jsonResp["id"])
@@ -82,10 +82,10 @@ func TestBodyCreateMissingArgs(t *testing.T) {
 	body := buildJsonBytes("name", "tester")
 	resp := runRequest(router, "POST", "/", body)
 	jsonResp := extractMapBody(resp)
-	expected := buildMap("error", "rating is required")
 
+	_, hasErrorMsg := jsonResp["error"]
+  assertEqual(t, true, hasErrorMsg)
 	assertEqual(t, 400, resp.Code)
-	assertMapEqual(t, expected, jsonResp)
 	t.Logf("%v", jsonResp)
 }
 
@@ -115,7 +115,7 @@ func TestMutateByID(t *testing.T) {
 		n.Name += " world"
 		return n
 	}))
-	id := create("hello", 0.0).ID
+	id := create("hello", 100.0).ID
 
 	resp := runRequest(router, "GET", fmt.Sprintf("/%d", id), nil)
 	jsonResp := extractMapBody(resp)
@@ -150,7 +150,7 @@ func TestQuerySearchSimple(t *testing.T) {
 
 	assertEqual(t, 200, resp.Code)
 	assertEqual(t, 2, len(jsonResp))
-	t.Logf("%v", jsonResp)
+	t.Logf("%+v", jsonResp)
 }
 
 func TestQuerySearchMultiple(t *testing.T) {
@@ -169,12 +169,12 @@ func TestQuerySearchDates(t *testing.T) {
 	router := getRouter()
 	router.GET("/testmodel", SetModel(&TestModel{}), QuerySearch())
 
-	resp := runRequest(router, "GET", "/testmodel?created_at=2010-10-10", nil)
+	resp := runRequest(router, "GET", "/testmodel?created_at_gt=2010-10-10", nil)
 	jsonResp := extractSliceBody(resp)
 
 	assertEqual(t, 200, resp.Code)
-	assertEqual(t, 0, len(jsonResp))
-	t.Logf("%v", jsonResp)
+	assertEqual(t, 16, len(jsonResp))
+	t.Logf("%+v", resp)
 }
 
 func TestBodySearchSimple(t *testing.T) {
@@ -482,12 +482,14 @@ func runRequest(router *gin.Engine, method, url string, bodyBytes []byte) *httpt
 	}
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest(method, url, body)
+  req.Header.Add("Content-Type", "application/json")
 	router.ServeHTTP(rec, req)
 	return rec
 }
 
 func initDB() {
 	db, _ := testConfig.OpenDB()
+  db.Migrator().DropTable(testConfig.Models...)
 	db.AutoMigrate(testConfig.Models...)
 	create("harry", 5.0)
 	create("harry", 2.2)
@@ -508,6 +510,7 @@ func initDB() {
 }
 
 func getRouter() *gin.Engine {
+  initDB()
 	r := gin.New()
 	r.Use(Middleware(testConfig))
 	return r

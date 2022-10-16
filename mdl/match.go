@@ -3,7 +3,6 @@ package mdl
 import (
 	"fmt"
 	"errors"
-  "reflect"
 	"gorm.io/gorm/schema"
 )
 
@@ -13,6 +12,7 @@ func MatchAnyMapToModel(dataMap map[string]interface{}, schema schema.Schema) er
 	columnSet := getModelColumnNames(schema, true)
 	for key := range dataMap {
 		if columnSet[key] {
+    fmt.Printf("%s:%b", key, columnSet[key])
 			return nil
 		}
 	}
@@ -32,8 +32,8 @@ func MatchAllMapToModel(dataMap map[string]interface{}, schema schema.Schema) er
 func getModelColumnNames(schema schema.Schema, includeAuto bool) StringSet {
 	names := make(StringSet)
 	for _, field := range schema.Fields {
-    if field.Name != "" {
-		  names[field.Name] = ( !isAutoCreatable(field) || includeAuto ) && field.FieldType.Kind() != reflect.Struct
+    if field.DBName != "" {
+		  names[field.DBName] = ( !isAutoCreatable(field) || includeAuto )
     }
 	}
 	return names

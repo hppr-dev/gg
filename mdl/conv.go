@@ -41,6 +41,25 @@ func CopyFields(src, dest interface{}) {
   }
 }
 
+//Convert gorm model to map
+func ModelToMap(model interface{}, sch schema.Schema) map[string]interface{} {
+  outMap := make(map[string]interface{})
+  modelStruct := followPtr(model)
+  for _, field := range sch.Fields {
+    outMap[field.DBName] = modelStruct.FieldByName(field.Name).Interface()
+  }
+  return outMap
+}
+
+//Convert map to gorm Model
+func MapToModel(inMap map[string]interface{}, model interface{}, sch schema.Schema) {
+  modelStruct := followPtr(model)
+  for key, value := range inMap {
+    field := sch.LookUpField(key)
+    modelStruct.FieldByName(field.Name).Set(reflect.ValueOf(value))
+  }
+}
+
 func addDefaultTags(schemaField *schema.Field, tag reflect.StructTag) reflect.StructTag {
   if schemaField != nil {
     computedTags := string(tag)

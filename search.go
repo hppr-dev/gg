@@ -128,13 +128,18 @@ func bindQuery(ctx *gin.Context) ComparisonMap {
 
 func convertComparisonDates(comparisons ComparisonMap, sch schema.Schema) error {
 	var err error
-	fields := sch.Fields
-	for _, field := range fields {
+	for _, field := range sch.Fields {
 		if comps, present := comparisons[field.DBName]; present && field.FieldType == reflect.TypeOf(time.Time{}) {
 			for _, comp := range comps {
-				if comp.Value, err = time.Parse(time.RFC3339Nano, comp.Value.(string)); err != nil {
-					return err
+        var value time.Time
+				if value, err = time.Parse("2006-01-02T15:04:05.999999999Z07:00", comp.Value.(string)); err != nil {
+				  if value, err = time.Parse("2006-01-02T15:04:05Z07:00", comp.Value.(string)); err != nil {
+				    if value, err = time.Parse("2006-01-02", comp.Value.(string)); err != nil {
+              return err
+            }
+          }
 				}
+        comp.Value = value
 			}
 		}
 	}

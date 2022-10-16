@@ -36,7 +36,7 @@ func convertStructToOutMap(model interface{}, sch schema.Schema) map[string]inte
 	conv := make(map[string]interface{})
 	for _, field := range sch.Fields {
     if field.FieldType.Kind() != reflect.Struct {
-		  conv[field.Name] = jsonOut[field.Name]
+		  conv[field.DBName] = jsonOut[field.Name]
     }
 	}
 	return conv

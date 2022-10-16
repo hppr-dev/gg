@@ -2,13 +2,24 @@ package gg
 
 import (
 	"github.com/gin-gonic/gin"
+  "hppr.dev/gg/mdl"
+  "fmt"
 )
 
 // UpdateByID returns a handler that uses post data to update the model record with the id from the url parameter
 func UpdateByID(urlParam string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-    gormData, _ := marshalInputToGormData(ctx)
 		schema := GetModelSchema(ctx)
+    var bodyData = make(DefaultMap)
+    bindData(ctx, &bodyData)
+    fmt.Printf("gormData:%+v\n", bodyData)
+    if err := mdl.MatchAnyMapToModel(bodyData, schema) ; err != nil {
+			DefaultOutput(ctx, 400, gin.H{"error": err.Error()})
+			return
+    }
+    model := GetModel(ctx)
+    gormData := mdl.New(model)
+    mdl.MapToModel(bodyData, gormData, schema)
 		pKeyColumn := schema.PrioritizedPrimaryField.DBName
 		db := GetDatabase(ctx)
     if cast, ok := gormData.(BeforeUpdateWithContexter) ; ok {
@@ -27,6 +38,6 @@ func UpdateByID(urlParam string) gin.HandlerFunc {
       }
     }
 		db.Model(gormData).Where(pKeyColumn+" = ?", ctx.Param(urlParam)).First(gormData)
-    outputGormData(ctx, gormData)
+    outputGormDataStatus(ctx, gormData, 200)
 	}
 }

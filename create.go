@@ -10,7 +10,7 @@ func BodyCreate() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
     gormData, err := marshalInputToGormData(ctx)
     if err != nil {
-      DefaultOutput(ctx, 400, gin.H{"message" : "Error validating input"})
+      DefaultOutput(ctx, 400, gin.H{"error" : err.Error()})
       return
     }
 		db := GetDatabase(ctx)
@@ -31,17 +31,24 @@ func BodyCreate() gin.HandlerFunc {
 
 func marshalInputToGormData(ctx *gin.Context) (interface{}, error) {
   marshal := GetMarshalType(ctx)
-  jsonInputData := mdl.New(marshal)
+  inputData := mdl.New(marshal)
 	model := GetModel(ctx)
 	gormData := mdl.New(model)
-	err := ctx.ShouldBind(jsonInputData)
-  mdl.CopyFields(jsonInputData, gormData)
+	err := bindData(ctx, inputData)
+  mdl.CopyFields(inputData, gormData)
   return gormData, err
 }
 
+func bindData(ctx *gin.Context, output interface{}) error {
+  return ctx.ShouldBind(output)
+}
+
 func outputGormData(ctx *gin.Context, gormData interface{}) {
-  marshal := GetMarshalType(ctx)
-  jsonOutputData := mdl.New(marshal)
-  mdl.CopyFields(gormData, jsonOutputData)
-	DefaultOutput(ctx, 201, jsonOutputData)
+  outputGormDataStatus(ctx, gormData, 201)
+}
+
+func outputGormDataStatus(ctx *gin.Context, gormData interface{}, status int) {
+  sch := GetModelSchema(ctx)
+  jsonOutputData := mdl.ModelToMap(gormData, sch)
+	DefaultOutput(ctx, status, jsonOutputData)
 }
